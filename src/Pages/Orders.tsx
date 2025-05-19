@@ -206,7 +206,7 @@ const Orders = () => {
     // id filter elements
     const idFilterTemplate = () => {
         return (
-            <InputText type="text" placeholder="Normal" onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+            <InputText type="text" placeholder="Enter order ID" onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                 setIdFilter(e.target.value)
                 console.log(idFilter)
             }}/>
@@ -215,7 +215,6 @@ const Orders = () => {
 
     // expander
     const allowExpansion = (rowData: any) => {
-
         return rowData?.food_list!.length > 0;
     };
     const onRowExpand = (event: DataTableRowEvent) => {
@@ -286,7 +285,7 @@ const Orders = () => {
                 <Column expander={allowExpansion} style={{width: '5rem'}}/>
 
                 {/*id input column*/}
-                <Column field="order_number" header="Order Number" filter filterPlaceholder="Search by name" style={{minWidth: '12rem'}} filterElement={idFilterTemplate}/>
+                <Column field="order_number" header="Order Number"  filter filterPlaceholder="Search by name" style={{minWidth: '12rem'}} filterElement={idFilterTemplate}/>
 
                 {/*Cooking status*/}
                 <Column field="cooking_complete_status" header="Cooking Status" filterMenuStyle={{width: '14rem'}} style={{minWidth: '12rem'}} body={cookingBodyTemplate} filter showFilterMenu={false}
@@ -300,7 +299,7 @@ const Orders = () => {
                                       filter
                                       filterBy={'name'}
                                       showFilterClear
-                                      placeholder="Select Payment Status"
+                                      placeholder="Select Cooking Status"
                                       className="p-column-filter"
                                       showClear
                                       style={{minWidth: '12rem'}}/>
@@ -319,7 +318,7 @@ const Orders = () => {
                                       filter
                                       filterBy={'name'}
                                       showFilterClear
-                                      placeholder="Select Payment Status"
+                                      placeholder="Select Order Type"
                                       className="p-column-filter"
                                       showClear
                                       style={{minWidth: '12rem'}}/>
