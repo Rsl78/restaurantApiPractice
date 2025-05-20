@@ -11,23 +11,43 @@ import {Tag} from 'primereact/tag';
 
 interface FilterUrl {
     idFilter: string;
-    orderTypeFilter: number| null| undefined;
-    orderStatusFilter: number| null| undefined;
-    cookingStatusFilter: number| null| undefined;
-    paymentStatusFilter: number| null| undefined;
+    orderTypeFilter: number | null | undefined;
+    orderStatusFilter: number | null | undefined;
+    cookingStatusFilter: number | null | undefined;
+    paymentStatusFilter: number | null | undefined;
 }
 
 const Orders = () => {
     const [orderData, setOrderData] = useState<any>([]);
     const [loading, setLoading] = useState<boolean>(true);
 
+    // filter state
     const [paymentStatusFilter, setPaymentStatusFilter] = useState<{ id: number, name: string } | null>(null);
     const [cookingStatusFilter, setCookingStatusFilter] = useState<{ id: number, name: string } | null>(null);
-    const [orderTypeFilter, setOrderTypeFilter] = useState<{ id: number, name: string }|null>(null);
+    const [orderTypeFilter, setOrderTypeFilter] = useState<{ id: number, name: string } | null>(null);
     const [orderStatusFilter, setOrderStatusFilter] = useState<{ id: number, name: string } | null>(null);
     const [idFilter, setIdFilter] = useState<string>('');
 
+    // paginator state
+    // const [first, setFirst] = useState<number>(0);
+    // const [rows, setRows] = useState<number>(10);
+    // const [page, setPage] = useState<number>(0);
+    // const [totalRecords, setTotalRecords] = useState<number>(0);
+    // useEffect(() => {
+    //     const pages = Math.ceil(first / rows)
+    //     setPage(pages)
+    // }, [first, rows]);
 
+    const [limitData, setLimitData] = useState<number>(10);
+    const [pageNumber, setPageNumber] = useState<number>(0);
+    const [currentPage, setCurrentPage] = useState<number>(0)
+    const [totalData, setTotalData] = useState<number>(0);
+    useEffect(() => {
+        let pages = Math.ceil(pageNumber / limitData);
+        setCurrentPage(pages)
+    }, [pageNumber, limitData]);
+
+    // filter default value state
     const [expandedRows, setExpandedRows] = useState<any | undefined>(undefined);
     const toast = useRef<Toast>(null);
     const [orderTypeOptions, setOrderTypeOptions] = useState<{ id: number, name: string }[]>([]);
@@ -72,9 +92,13 @@ const Orders = () => {
 
     }, []);
 
-
-
-    const buildFilterUrl = ({idFilter,orderTypeFilter,orderStatusFilter,cookingStatusFilter,paymentStatusFilter}: FilterUrl) => {
+    const buildFilterUrl = ({
+                                idFilter,
+                                orderTypeFilter,
+                                orderStatusFilter,
+                                cookingStatusFilter,
+                                paymentStatusFilter
+                            }: FilterUrl) => {
 
         const filterParams: any[] = [];
 
@@ -82,40 +106,40 @@ const Orders = () => {
             filterParams.push(["order_number", "like", `${idFilter}`]);
         }
 
-        if(orderTypeFilter) {
+        if (orderTypeFilter) {
             const selectedOrderTypeFilter = ["order_type_id", orderTypeFilter];
             if (selectedOrderTypeFilter) {
-                if(filterParams.length > 0) {
+                if (filterParams.length > 0) {
                     filterParams.push(["AND"]);
                 }
                 filterParams.push(["order_type_id", orderTypeFilter]);
             }
         }
 
-        if(orderStatusFilter) {
+        if (orderStatusFilter) {
             const selectedOrderStatusFilter = ["order_status_id", orderStatusFilter];
             if (selectedOrderStatusFilter) {
-                if(filterParams.length > 0) {
+                if (filterParams.length > 0) {
                     filterParams.push(["AND"]);
                 }
                 filterParams.push(["order_status_id", orderStatusFilter]);
             }
         }
 
-        if(cookingStatusFilter) {
+        if (cookingStatusFilter) {
             const selectedCookingStatusFilter = ["cooking_complete_status", cookingStatusFilter];
             if (selectedCookingStatusFilter) {
-                if(filterParams.length > 0) {
+                if (filterParams.length > 0) {
                     filterParams.push(["AND"]);
                 }
                 filterParams.push(["cooking_complete_status", cookingStatusFilter]);
             }
         }
 
-        if(paymentStatusFilter) {
+        if (paymentStatusFilter) {
             const selectedPaymentStatusFilter = ["payment_status", paymentStatusFilter];
             if (selectedPaymentStatusFilter) {
-                if(filterParams.length > 0) {
+                if (filterParams.length > 0) {
                     filterParams.push(["AND"]);
                 }
                 filterParams.push(["payment_status", paymentStatusFilter]);
@@ -123,8 +147,15 @@ const Orders = () => {
         }
         // console.log(filterParams);
 
-        return filterParams.length > 0 ? `${baseUrl.url}/api/order?page=0&size=100&filters=${JSON.stringify(filterParams)}`: `${baseUrl.url}/api/order?page=0&size=100`
+        return filterParams.length > 0 ? `${baseUrl.url}/api/order?page=${currentPage}&size=${limitData}&filters=${JSON.stringify(filterParams)}` : `${baseUrl.url}/api/order?page=${currentPage}&size=${limitData}`
     }
+
+    const handlePageChange = (event: any) => {
+        setPageNumber(event.first)
+        setLimitData(event.rows)
+    }
+
+    console.log('page:', currentPage, "first:", pageNumber, "rows: ", limitData)
 
 
     useEffect(() => {
@@ -135,7 +166,7 @@ const Orders = () => {
             cookingStatusFilter: cookingStatusFilter?.id,
             paymentStatusFilter: paymentStatusFilter?.id
         }
-         const url =buildFilterUrl(params)
+        const url = buildFilterUrl(params)
 
         fetch(url, {
             method: 'GET',
@@ -146,9 +177,12 @@ const Orders = () => {
             .then((response) => response.json())
             .then((data) => {
                 setOrderData(data.data.items);
+                setTotalData(data?.data?.total)
                 setLoading(false);
             }).catch(error => console.log(error));
-    }, [paymentStatusFilter,orderTypeFilter,orderStatusFilter,cookingStatusFilter,idFilter]);
+    }, [paymentStatusFilter, orderTypeFilter, orderStatusFilter, cookingStatusFilter, idFilter, currentPage]);
+
+    console.log('total: ', totalData)
 
     const [filters] = useState<DataTableFilterMeta>({
         order_number: {value: null, matchMode: FilterMatchMode.CONTAINS},
@@ -157,9 +191,6 @@ const Orders = () => {
         cooking_complete_status: {value: null, matchMode: FilterMatchMode.EQUALS},
         payment_status: {value: null, matchMode: FilterMatchMode.EQUALS},
     });
-
-    // console.log(orderData)
-
     const getSeverity = (status: string) => {
         switch (status) {
             case 'Cancelled':
@@ -178,31 +209,26 @@ const Orders = () => {
                 return null;
         }
     };
-
-
     // payment status filter
     const paymentBodyTemplate = (rowData: any) => {
-        const paymentStatus =rowData?.payment_status === 1 ? 'Completed' : 'Incomplete'
+        const paymentStatus = rowData?.payment_status === 1 ? 'Completed' : 'Incomplete'
         return <Tag value={paymentStatus} severity={getSeverity(paymentStatus)}/>;
         // return <p>{rowData?.payment_status === 1 ? 'Completed' : 'Incomplete'}</p>;
     };
-
     // Cooking status filter
     const cookingBodyTemplate = (rowData: any) => {
         const cookingStatus = rowData?.cooking_complete_status === 1 ? 'Completed' : 'Pending'
         return <Tag value={cookingStatus} severity={getSeverity(cookingStatus)}/>;
         // return <p>{rowData?.cooking_complete_status === 1 ? 'Completed' : 'Pending'}</p>;
     };
-
+    // order type filter
     const orderTypeBodyTemplate = (rowData: any) => {
         return <p>{rowData?.order_type.name}</p>;
     }
-
+    // order status filter
     const orderStatusBodyTemplate = (rowData: any) => {
         return <p>{rowData?.order_status.name}</p>;
     }
-
-
     // id filter elements
     const idFilterTemplate = () => {
         return (
@@ -212,7 +238,6 @@ const Orders = () => {
             }}/>
         );
     };
-
     // expander
     const allowExpansion = (rowData: any) => {
         return rowData?.food_list!.length > 0;
@@ -234,9 +259,9 @@ const Orders = () => {
         setExpandedRows(undefined);
     };
     const header = (<div className="flex flex-wrap justify-content-end gap-2">
-            <Button icon="pi pi-plus" label="Expand All" onClick={expandAll} text/>
-            <Button icon="pi pi-minus" label="Collapse All" onClick={collapseAll} text/>
-        </div>);
+        <Button icon="pi pi-plus" label="Expand All" onClick={expandAll} text/>
+        <Button icon="pi pi-minus" label="Collapse All" onClick={collapseAll} text/>
+    </div>);
     const quantityBodyTemplate = (rowData: any) => rowData.size_list?.[0]?.quantity;
     const priceBodyTemplate = (rowData: any) => rowData.size_list?.[0]?.price;
     const imageBodyTemplate = (rowData: any) => {
@@ -266,8 +291,6 @@ const Orders = () => {
             <h1>Orders Page</h1>
 
             <DataTable value={orderData}
-                       paginator
-                       rows={10}
                        dataKey="id"
                        filters={filters}
                        filterDisplay="row"
@@ -275,20 +298,31 @@ const Orders = () => {
                        emptyMessage="No customers found."
                        expandedRows={expandedRows}
                        onRowToggle={(e) => setExpandedRows(e.data)}
-                       onRowExpand={onRowExpand}
-                       onRowCollapse={onRowCollapse}
+                       onRowExpand={onRowExpand} onRowCollapse={onRowCollapse}
                        rowExpansionTemplate={rowExpansionTemplate}
                        header={header}
                        tableStyle={{minWidth: '60rem'}}
+                       paginator={orderData.length > 0}
+                       rows={limitData}
+                       totalRecords={totalData}
+                       lazy
+                       first={pageNumber}
+                       onPage={(e) => {
+                           setPageNumber(e.first);
+                           setLimitData(e.rows);
+                       }}
+                // rowsPerPageOptions={[10, 25, 50, 100]}
             >
 
                 <Column expander={allowExpansion} style={{width: '5rem'}}/>
 
                 {/*id input column*/}
-                <Column field="order_number" header="Order Number"  filter filterPlaceholder="Search by name" style={{minWidth: '12rem'}} filterElement={idFilterTemplate}/>
+                <Column field="order_number" header="Order Number" filter filterPlaceholder="Search by name"
+                        style={{minWidth: '12rem'}} filterElement={idFilterTemplate}/>
 
                 {/*Cooking status*/}
-                <Column field="cooking_complete_status" header="Cooking Status" filterMenuStyle={{width: '14rem'}} style={{minWidth: '12rem'}} body={cookingBodyTemplate} filter showFilterMenu={false}
+                <Column field="cooking_complete_status" header="Cooking Status" filterMenuStyle={{width: '14rem'}}
+                        style={{minWidth: '12rem'}} body={cookingBodyTemplate} filter showFilterMenu={false}
                         filterElement={
                             <Dropdown value={cookingStatusFilter} options={cookingStatusOptions}
                                       onChange={(e: DropdownChangeEvent) => {
@@ -307,7 +341,8 @@ const Orders = () => {
                 />
 
                 {/*Order Type Column*/}
-                <Column field="order_type.name" header="Order Type" filterMenuStyle={{width: '14rem'}} style={{minWidth: '12rem'}} body={orderTypeBodyTemplate} filter showFilterMenu={false}
+                <Column field="order_type.name" header="Order Type" filterMenuStyle={{width: '14rem'}}
+                        style={{minWidth: '12rem'}} body={orderTypeBodyTemplate} filter showFilterMenu={false}
                         filterElement={
                             <Dropdown value={orderTypeFilter} options={orderTypeOptions}
                                       onChange={(e: DropdownChangeEvent) => {
@@ -326,7 +361,8 @@ const Orders = () => {
                 />
 
                 {/*payment status column*/}
-                <Column field="payment_status" header="Payment Status" filterMenuStyle={{width: '14rem'}} style={{minWidth: '12rem'}} body={paymentBodyTemplate} filter showFilterMenu={false}
+                <Column field="payment_status" header="Payment Status" filterMenuStyle={{width: '14rem'}}
+                        style={{minWidth: '12rem'}} body={paymentBodyTemplate} filter showFilterMenu={false}
                         filterElement={
                             <Dropdown value={paymentStatusFilter} options={paymentStatusOptions}
                                       onChange={(e: DropdownChangeEvent) => {
@@ -343,8 +379,9 @@ const Orders = () => {
                         }
                 />
 
-            {/*    Order status*/}
-                <Column field="order_status.name" header="Order Status" filterMenuStyle={{width: '14rem'}} style={{minWidth: '12rem'}} body={orderStatusBodyTemplate} filter showFilterMenu={false}
+                {/*    Order status*/}
+                <Column field="order_status.name" header="Order Status" filterMenuStyle={{width: '14rem'}}
+                        style={{minWidth: '12rem'}} body={orderStatusBodyTemplate} filter showFilterMenu={false}
                         filterElement={
                             <Dropdown value={orderStatusFilter} options={orderStatusOptions}
                                       onChange={(e: DropdownChangeEvent) => {
